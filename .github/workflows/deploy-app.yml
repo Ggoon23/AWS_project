@@ -104,7 +104,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP_walb }}
+        role-to-assume: arn:aws:iam::902597156026:role/walb-app-github-actions-app-role
         aws-region: ${{ secrets.AWS_REGION }}
         role-session-name: GitHubActions-Application-${{ github.run_id }}
         role-duration-seconds: 3600
