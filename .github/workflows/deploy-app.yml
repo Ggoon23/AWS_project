@@ -107,6 +107,8 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP_walb }}
         aws-region: ${{ secrets.AWS_REGION }}
         role-session-name: GitHubActions-Application-${{ github.run_id }}
+        role-duration-seconds: 3600
+        retry-max-attempts: 3
 
     # ===============================================
     # 기존 인프라 정보 조회
