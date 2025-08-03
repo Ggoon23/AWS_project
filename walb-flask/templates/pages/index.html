@@ -1,0 +1,610 @@
+{% extends "base.html" %} {% block title %}WALB 대시보드{% endblock %} {% block extra_css %}
+<style>
+    /* Pretendard 폰트 임포트 */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+    .floating-elements {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .floating-circle {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float-circle 6s ease-in-out infinite;
+    }
+
+    .circle-1 {
+        width: 60px;
+        height: 60px;
+        top: 20%;
+        right: 10%;
+        animation-delay: 0s;
+    }
+
+    .circle-2 {
+        width: 40px;
+        height: 40px;
+        top: 60%;
+        right: 20%;
+        animation-delay: 2s;
+    }
+
+    .circle-3 {
+        width: 80px;
+        height: 80px;
+        top: 10%;
+        right: 40%;
+        animation-delay: 4s;
+    }
+
+    @keyframes float {
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    @keyframes float-circle {
+        0%,
+        100% {
+            transform: translateY(0px) rotate(0deg);
+            opacity: 0.1;
+        }
+        50% {
+            transform: translateY(-20px) rotate(180deg);
+            opacity: 0.2;
+        }
+    }
+</style>
+{% endblock %} {% block content %}
+<!-- Hero Section -->
+<div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white mb-8 relative overflow-hidden">
+    <div class="relative z-10">
+        <div class="flex items-center mb-4">
+            <span class="text-4xl mr-4 animate-bounce">🏠</span>
+            <div>
+                <h1 class="text-3xl font-bold mb-2">멀티 클라우드 보안 관리 대시보드</h1>
+                <p class="text-blue-100">Terraform & boto3 하이브리드 IaC 자동화 + Kinesis & Splunk 통합 모니터링</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-10 right-10 w-20 h-20 bg-white rounded-full animate-pulse"></div>
+        <div class="absolute bottom-10 right-20 w-16 h-16 bg-white rounded-full animate-pulse delay-1000"></div>
+        <div class="absolute top-20 left-20 w-12 h-12 bg-white rounded-full animate-pulse delay-2000"></div>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border">
+        <div class="flex items-center">
+            <div class="p-3 bg-blue-100 rounded-lg">
+                <span class="text-2xl">☁️</span>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-600">총 계정</p>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.total_accounts }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border">
+        <div class="flex items-center">
+            <div class="p-3 bg-green-100 rounded-lg">
+                <span class="text-2xl">✅</span>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-600">활성 계정</p>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.active_accounts }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border">
+        <div class="flex items-center">
+            <div class="p-3 bg-purple-100 rounded-lg">
+                <span class="text-2xl">🛡️</span>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-600">Role 기반</p>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.role_based }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border">
+        <div class="flex items-center">
+            <div class="p-3 bg-orange-100 rounded-lg">
+                <span class="text-2xl">🔑</span>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-600">Key 기반</p>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.key_based }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="flex gap-4 mb-8">
+    <a href="{{ url_for('connection.index') }}" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"> ➕ 새 AWS 계정 추가 </a>
+    <button onclick="location.reload()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">🔄 새로고침</button>
+    <button onclick="testAllConnections()" id="test-connections-btn" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
+        <span id="test-btn-text">🔍 연결 상태 확인</span>
+        <span id="test-btn-spinner" class="hidden">⏳ 연결 테스트 중...</span>
+    </button>
+</div>
+
+<!-- Accounts Section -->
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-900">☁️ 연결된 AWS 계정</h2>
+        <span class="text-sm text-gray-500">총 {{ accounts|length }}개</span>
+    </div>
+
+    {% if accounts %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for account in accounts %}
+        <div class="border rounded-lg p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <span class="text-xl mr-3">☁️</span>
+                    <h3 class="font-semibold text-gray-900">{{ account.cloud_name }}</h3>
+                </div>
+                <span id="status-{{ account.account_id }}-{{ account.cloud_name }}" class="text-xs px-2 py-1 rounded-full {% if account.status == 'active' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                    {% if account.status == 'active' %}연결됨{% else %}연결실패{% endif %}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-600">계정 ID</p>
+                    <p class="font-medium">{{ account.account_id }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">리전</p>
+                    <p class="font-medium">{{ account.primary_region }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">연결 방식</p>
+                    <p class="font-medium">{{ account.connection_display_name }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">담당자</p>
+                    <p class="font-medium">{{ account.contact_email }}</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-4" id="actions-{{ account.account_id }}-{{ account.cloud_name }}">
+                {% if account.status == 'active' %}
+                <button onclick="window.location.href='{{ url_for('diagnosis.index') }}?account={{ account.account_id }}'" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">🛡️ 보안 진단</button>
+                <button onclick="window.location.href='{{ url_for('monitoring.index') }}?account={{ account.account_id }}'" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">📊 모니터링</button>
+                {% else %}
+                <button disabled class="flex-1 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium">⚠️ 재연결 필요</button>
+                <button disabled class="px-4 py-2 bg-gray-400 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium">⚠️ 재연결 필요</button>
+                {% endif %}
+                <button onclick="editConnection('{{ account.account_id }}', '{{ account.cloud_name }}')" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">⚙️ 수정</button>
+                <button onclick="deleteAccount('{{ account.account_id }}', '{{ account.cloud_name }}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">🗑️ 삭제</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">☁️</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">연결된 AWS 계정이 없습니다</h3>
+        <p class="text-gray-600 mb-6">WALB 보안 관리를 시작하려면 AWS 계정을 먼저 연결해주세요</p>
+        <a href="{{ url_for('connection.index') }}" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"> ➕ 첫 번째 계정 연결 </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Project Info Section -->
+<div class="bg-white rounded-xl shadow-sm border p-6">
+    <div class="flex items-center mb-6">
+        <span class="text-2xl mr-3">🔍</span>
+        <h2 class="text-xl font-bold text-gray-900">WALB 프로젝트 소개</h2>
+    </div>
+
+    <p class="text-gray-700 mb-6"><strong>WALB(Well-Architected AWS Security Lab)</strong>는 클라우드 보안 가이드라인을 기반으로 AWS 환경의 보안 진단, 자동 조치, 모니터링 및 안전한 인프라 구축을 수행하는 통합 보안 관리 플랫폼입니다.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                <span class="text-lg mr-2">🎯</span>
+                주요 기능
+            </h3>
+            <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>41개 보안 항목 자동 진단 및 실시간 조치</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Terraform + tfsec 기반 안전한 IaC 인프라 구축</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Splunk + Kinesis 통합 실시간 보안 모니터링</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>GuardDuty, CloudTrail 연계 위협 탐지</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span>Cross-Account Role 기반 안전한 멀티 계정 관리</span>
+                </li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                <span class="text-lg mr-2">🛠️</span>
+                기술 스택
+            </h3>
+            <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-start">
+                    <span class="text-blue-500 mr-2">▶</span>
+                    <span><strong>Backend:</strong> Flask, boto3, SQLite</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-blue-500 mr-2">▶</span>
+                    <span><strong>Frontend:</strong> Tailwind CSS, Vanilla JS</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-blue-500 mr-2">▶</span>
+                    <span><strong>IaC:</strong> Terraform, tfsec (보안 검증)</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-blue-500 mr-2">▶</span>
+                    <span><strong>Monitoring:</strong> Splunk, Kinesis, CloudWatch, CloudTrail, GuardDuty</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="text-blue-500 mr-2">▶</span>
+                    <span><strong>Security:</strong> IAM 최소 권한, Cross-Account Role</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-800"><strong>💡 Tip:</strong> 좌측 상단의 "➕ 새 AWS 계정 추가" 버튼을 클릭하여 첫 번째 AWS 계정을 연결하고, 보안 진단을 시작해보세요. <br />모든 진단 결과는 실시간으로 확인 가능하며, 위험한 설정은 즉시 자동 조치할 수 있습니다.</p>
+    </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+    // 실시간 시간 업데이트
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleString('ko-KR');
+        const timeElement = document.getElementById('current-time');
+        if (timeElement) {
+            timeElement.textContent = timeString;
+        }
+    }
+
+    // 사이드바 통계 업데이트
+    function updateSidebarStats() {
+        const totalElement = document.getElementById('total-accounts');
+        const activeElement = document.getElementById('active-accounts');
+        if (totalElement) totalElement.textContent = '{{ stats.total_accounts }}';
+        if (activeElement) activeElement.textContent = '{{ stats.active_accounts }}';
+    }
+
+    // 모든 계정 연결 상태 테스트
+    async function testAllConnections() {
+        const btn = document.getElementById('test-connections-btn');
+        const btnText = document.getElementById('test-btn-text');
+        const btnSpinner = document.getElementById('test-btn-spinner');
+
+        // 버튼 상태 변경
+        btn.disabled = true;
+        btnText.classList.add('hidden');
+        btnSpinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/test-all-connections', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                let successCount = 0;
+                let failedCount = 0;
+
+                // 각 계정의 상태를 UI에 업데이트하고 실패한 계정들 추적
+                Object.values(result.results).forEach((account) => {
+                    updateAccountStatus(account.account_id, account.cloud_name, account.new_status, account.status_message);
+                    updateAccountActions(account.account_id, account.cloud_name, account.new_status);
+
+                    if (account.test_success) {
+                        successCount++;
+                    } else {
+                        failedCount++;
+                        // 실패한 계정에 대해 개별 토스트 표시
+                        showFailureToast(account.cloud_name, account.account_id, account.error_message);
+                    }
+                });
+
+                // 전체 결과 요약 메시지
+                if (failedCount === 0) {
+                    showNotification('success', `✅ 모든 계정 연결 성공 (${successCount}개)`);
+                } else {
+                    showNotification('warning', `⚠️ 연결 테스트 완료: 성공 ${successCount}개, 실패 ${failedCount}개`);
+                }
+
+                // 3초 후 페이지 새로고침 (통계 업데이트)
+                setTimeout(() => {
+                    location.reload();
+                }, 5000);
+            } else {
+                showNotification('error', `연결 테스트 실패: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Connection test error:', error);
+            showNotification('error', '연결 테스트 중 오류가 발생했습니다.');
+        } finally {
+            // 버튼 상태 복원
+            btn.disabled = false;
+            btnText.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+        }
+    }
+
+    // 개별 계정 상태 UI 업데이트
+    function updateAccountStatus(accountId, cloudName, status, statusMessage) {
+        const statusElement = document.getElementById(`status-${accountId}-${cloudName}`);
+        if (statusElement) {
+            // 클래스 초기화
+            statusElement.className = 'text-xs px-2 py-1 rounded-full';
+
+            // 상태에 따른 스타일 적용
+            if (status === 'active') {
+                statusElement.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                statusElement.classList.add('bg-red-100', 'text-red-700');
+            }
+
+            statusElement.textContent = statusMessage;
+        }
+    }
+
+    // 개별 계정 액션 버튼 업데이트
+    function updateAccountActions(accountId, cloudName, status) {
+        const actionsElement = document.getElementById(`actions-${accountId}-${cloudName}`);
+        if (actionsElement) {
+            if (status === 'active') {
+                // 연결 성공 시 활성화된 버튼들
+                actionsElement.innerHTML = `
+                    <button onclick="window.location.href='/diagnosis?account=${accountId}'" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">🛡️ 보안 진단</button>
+                    <button onclick="window.location.href='/monitoring?account=${accountId}'" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">📊 모니터링</button>
+                    <button onclick="editConnection('${accountId}', '${cloudName}')" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">⚙️ 수정</button>
+                    <button onclick="deleteAccount('${accountId}', '${cloudName}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">🗑️ 삭제</button>
+                `;
+            } else {
+                // 연결 실패 시 비활성화된 버튼들
+                actionsElement.innerHTML = `
+                    <button disabled class="flex-1 px-4 py-2 bg-gray-400 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium">⚠️ 재연결 필요</button>
+                    <button disabled class="px-4 py-2 bg-gray-400 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium">⚠️ 재연결 필요</button>
+                    <button onclick="editConnection('${accountId}', '${cloudName}')" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">⚙️ 수정</button>
+                    <button onclick="deleteAccount('${accountId}', '${cloudName}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">🗑️ 삭제</button>
+                `;
+            }
+        }
+    }
+
+    // 알림 메시지 표시
+    function showNotification(type, message) {
+        // 기존 알림 제거
+        const existing = document.getElementById('notification');
+        if (existing) {
+            existing.remove();
+        }
+
+        // 새 알림 생성
+        const notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg max-w-md ${type === 'success' ? 'bg-green-500 text-white' : type === 'warning' ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'}`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'}</span>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // 5초 후 자동 제거
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    // 연결 실패한 계정에 대한 개별 토스트 표시
+    function showFailureToast(cloudName, accountId, errorMessage) {
+        // 실패 토스트 생성
+        const toastId = `failure-toast-${accountId}-${Date.now()}`;
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.className = 'fixed top-20 right-4 z-40 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm mb-2';
+        toast.style.marginTop = `${document.querySelectorAll('[id^="failure-toast-"]').length * 60}px`;
+
+        // 에러 메시지 정리 (너무 길면 줄임)
+        let displayError = errorMessage || '알 수 없는 오류';
+        if (displayError.length > 100) {
+            displayError = displayError.substring(0, 100) + '...';
+        }
+
+        toast.innerHTML = `
+            <div class="text-sm">
+                <div class="font-semibold mb-1">❌ 연결 실패: ${cloudName}</div>
+                <div class="text-xs opacity-90">계정 ID: ${accountId}</div>
+                <div class="text-xs opacity-90 mt-1">${displayError}</div>
+                <button onclick="this.parentElement.parentElement.remove()" class="absolute top-1 right-2 text-white hover:text-gray-200 text-lg">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        // 10초 후 자동 제거
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 10000);
+    }
+
+    // 페이지 로드 시 자동 연결 테스트 실행
+    async function autoTestConnections() {
+        // 계정이 있는 경우에만 자동 테스트 실행
+        const accountElements = document.querySelectorAll('[id^="status-"]');
+        if (accountElements.length > 0) {
+            console.log('페이지 로드 시 자동 연결 테스트 시작...');
+
+            // 테스트 버튼 비활성화
+            const btn = document.getElementById('test-connections-btn');
+            const btnText = document.getElementById('test-btn-text');
+            const btnSpinner = document.getElementById('test-btn-spinner');
+
+            if (btn && btnText && btnSpinner) {
+                btn.disabled = true;
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+            }
+
+            // 자동 테스트시에는 토스트 메시지 없이 바로 실행
+            setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/test-all-connections', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        let successCount = 0;
+                        let failedCount = 0;
+
+                        // 각 계정의 상태를 UI에 업데이트하고 실패한 계정들 추적
+                        Object.values(result.results).forEach((account) => {
+                            updateAccountStatus(account.account_id, account.cloud_name, account.new_status, account.status_message);
+                            updateAccountActions(account.account_id, account.cloud_name, account.new_status);
+
+                            if (account.test_success) {
+                                successCount++;
+                            } else {
+                                failedCount++;
+                                // 실패한 계정에 대해 개별 토스트 표시 (자동 테스트)
+                                showFailureToast(account.cloud_name, account.account_id, account.error_message);
+                            }
+                        });
+
+                        // 자동 테스트 완료 메시지 (덜 침해적)
+                        if (failedCount > 0) {
+                            console.log(`자동 연결 테스트 완료: 성공 ${successCount}개, 실패 ${failedCount}개`);
+                        }
+                    } else {
+                        console.error('Auto connection test failed:', result.error);
+                        showNotification('error', `자동 연결 테스트 실패: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Auto connection test failed:', error);
+                    showNotification('error', '자동 연결 테스트 중 오류가 발생했습니다.');
+                } finally {
+                    // 테스트 버튼 복원
+                    const btn = document.getElementById('test-connections-btn');
+                    const btnText = document.getElementById('test-btn-text');
+                    const btnSpinner = document.getElementById('test-btn-spinner');
+
+                    if (btn && btnText && btnSpinner) {
+                        btn.disabled = false;
+                        btnText.classList.remove('hidden');
+                        btnSpinner.classList.add('hidden');
+                    }
+                }
+            }, 3000);
+        }
+    }
+
+    // AWS 계정 삭제 함수
+    async function deleteAccount(accountId, cloudName) {
+        // 확인 모달
+        const confirmed = confirm(`정말로 "${cloudName}" (${accountId}) 계정을 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/accounts/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account_id: accountId,
+                    cloud_name: cloudName,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 성공 메시지
+                showNotification('success', `"${cloudName}" 계정이 성공적으로 삭제되었습니다.`);
+
+                // 페이지 새로고침
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                // 실패 메시지
+                showNotification('error', `계정 삭제 실패: ${result.error || '알 수 없는 오류'}`);
+            }
+        } catch (error) {
+            console.error('Delete account error:', error);
+            showNotification('error', '계정 삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    // AWS 계정 연결 수정 함수
+    function editConnection(accountId, cloudName) {
+        // 연결 수정 페이지로 이동 (3단계부터 시작하는 수정 모드)
+        window.location.href = `/connection?mode=edit&account=${accountId}&name=${encodeURIComponent(cloudName)}`;
+    }
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', function () {
+        updateTime();
+        updateSidebarStats();
+        setInterval(updateTime, 1000);
+
+        // 자동 연결 테스트 실행
+        autoTestConnections();
+    });
+</script>
+{% endblock %}

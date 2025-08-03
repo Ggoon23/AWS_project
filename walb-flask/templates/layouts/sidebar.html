@@ -1,0 +1,109 @@
+<!-- Sidebar -->
+<aside class="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto">
+    <nav class="p-4">
+        <ul class="space-y-2">
+            <!-- Dashboard -->
+            <li>
+                <a href="{{ url_for('main.index') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-100 {{ 'bg-blue-50 text-blue-700' if request.endpoint == 'main.index' else 'text-gray-700' }}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    대시보드
+                </a>
+            </li>
+
+            <!-- AWS Connection -->
+            <li>
+                <a href="{{ url_for('connection.index') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-100 {{ 'bg-blue-50 text-blue-700' if request.endpoint == 'connection.index' else 'text-gray-700' }}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                    </svg>
+                    AWS 계정 연결
+                </a>
+            </li>
+
+            <!-- Security Diagnosis -->
+            <li>
+                <a href="{{ url_for('diagnosis.index') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-100 {{ 'bg-blue-50 text-blue-700' if request.endpoint == 'diagnosis.index' else 'text-gray-700' }}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    보안 진단
+                </a>
+            </li>
+
+            <!-- Monitoring -->
+            <li>
+                <a href="{{ url_for('monitoring.index') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-100 {{ 'bg-blue-50 text-blue-700' if request.endpoint == 'monitoring.index' else 'text-gray-700' }}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        ></path>
+                    </svg>
+                    모니터링
+                </a>
+            </li>
+
+        </ul>
+
+        <!-- 진단 진행 상황 (진단 페이지에서만 표시) -->
+        {% if request.endpoint == 'diagnosis.index' %}
+        <div class="mt-6 p-4 border-t border-gray-200">
+            <!-- 진단 항목 레이아웃 선택 -->
+            <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">🔄 진단항목 정렬</h4>
+                <div class="flex space-x-2" id="layoutRadioGroup">
+                    <label class="flex-1">
+                        <input type="radio" name="layout" value="1" class="sr-only peer" id="layout1Col" />
+                        <div class="py-2 px-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer text-center text-sm font-medium transition-all hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700">1열</div>
+                    </label>
+                    <label class="flex-1">
+                        <input type="radio" name="layout" value="2" class="sr-only peer" id="layout2Col" checked />
+                        <div class="py-2 px-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer text-center text-sm font-medium transition-all hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700">2열</div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="progressSidebar" style="display: none">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                    <span class="text-lg mr-2">🚀</span>
+                    진단 진행 상황
+                </h4>
+
+                <!-- 진행 통계 -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-blue-50 rounded-lg p-2 text-center">
+                        <div class="text-lg font-bold text-blue-600" id="progressPercentageValue">0%</div>
+                        <div class="text-xs text-blue-500">진행률</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-2 text-center">
+                        <div class="text-lg font-bold text-green-600" id="completedCountValue">0</div>
+                        <div class="text-xs text-green-500">완료</div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-2 text-center">
+                        <div class="text-lg font-bold text-red-600" id="failedCountValue">0</div>
+                        <div class="text-xs text-red-500">실패</div>
+                    </div>
+                </div>
+
+                <!-- 프로그레스 바 -->
+                <div class="mb-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300" id="progressFillBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 현재 상태 -->
+                <div class="mb-4">
+                    <h5 class="text-xs font-medium text-gray-700 mb-1">📋 현재 상태</h5>
+                    <div class="text-xs text-gray-600 bg-gray-50 rounded-lg p-2 font-mono" id="currentStatusText">진단 준비 중...</div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+    </nav>
+</aside>

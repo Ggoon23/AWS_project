@@ -1,0 +1,51 @@
+# Java
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# Spring Boot
+*.log
+spring.log
+
+# Flask Logs
+walb-flask/logs/
+logs/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfplan
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+.claude
+CLAUDE.md
+claude.md
+/.claude
+mainHub/
+copilot-instructions.md
+SplunkEc2.pem
+
+# SSH Keys and Security
+*.pem
+*.key
+ssh_keys/
+keys/
+
+# Environment Variables
+.env
+.env.local
+.env.production
