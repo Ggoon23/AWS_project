@@ -113,7 +113,7 @@ jobs:
     # ===============================================
     - name: Get Infrastructure Resources
       run: |
-        echo "🔍 기존 인프라 리소스 정보 조회 중..."
+        echo "🔍 기존 인프라 리소스 정보 조회 중.."
         
         # ECR 리포지토리 URI 조회
         ECR_REPO=$(aws ecr describe-repositories --repository-names ${PROJECT_NAME}-ecr --query 'repositories[0].repositoryUri' --output text 2>/dev/null || echo "")
